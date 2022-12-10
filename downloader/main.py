@@ -1,13 +1,11 @@
 from bs4 import BeautifulSoup as bs4
 from tqdm.asyncio import tqdm
 import aiohttp
-import aioreq
 import asyncio
 import aiofiles
 import logging
 import os
 
-cl = aioreq.Client()
 logging.basicConfig(level=logging.DEBUG, filename='logs.log', filemode='w',
                     format='%(name)s - %(levelname)s - %(message)s')
 ONE_FILE = False
