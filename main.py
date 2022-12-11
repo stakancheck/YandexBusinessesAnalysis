@@ -93,10 +93,12 @@ class DownloadSite:
 
         return set(local_links)
 
+
 async def main():
     def get_urls_from_database():
-        df = pd.read_csv('clients.csv', delimiter='\t')
-        return df.iloc[:, 0].tolist()
+        all_urls = pd.read_csv('all_urls.csv', delimiter='\t')
+        urls = all_urls.iloc[:, 0].tolist()
+        return urls
 
     urls = get_urls_from_database()
 
