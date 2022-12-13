@@ -27,7 +27,7 @@ class DownloadSite:
     async def get_page_content(self, sub_url: str):
         logging.debug(f'Start get site by url: {self.site} -> {sub_url}')
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(trust_env=True) as session:
             try:
                 async with session.get(sub_url, ssl=False, timeout=TIMEOUT) as resp:
                     logging.info(f'STATUS {resp.status}: {self.site} -> {sub_url}')
@@ -75,14 +75,12 @@ class DownloadSite:
         soup = bs4(html, 'html.parser')
         for link in tqdm(soup.find_all("a", href=True), ascii=PROGRESS_BAR_ASCII, desc=f'Subpages for {self.site}'):
             url: str = link['href']
-
-            # crutch with same link in html and main link: length diff > 2
             if self.site[7:] != url[7:] and \
                     self.site[7:] != url[8:] and \
                     '/' in url and \
-                    (not 'catalog' in url) and \
-                    (not url in local_links) and \
-                    (not url in self.links):
+                    ('catalog' not in url) and \
+                    (url not in local_links) and \
+                    (url not in self.links):
 
                 if not url.startswith('http'):
                     url = self.url + url
@@ -98,11 +96,10 @@ async def main():
     def get_urls_from_database():
         all_urls = pd.read_csv('all_urls.csv', delimiter='\t')
         urls = all_urls.iloc[:, 0].tolist()
+        urls.append(all_urls.keys()[0])
         return urls
 
     urls = get_urls_from_database()
-
-    # TODO: write script to get links from exel file
 
     logging.info('START WORKING')
 
