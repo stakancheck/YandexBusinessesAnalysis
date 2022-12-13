@@ -42,7 +42,7 @@ class DownloadSite:
             except aiohttp.client_exceptions.ClientConnectorError as ex:
                 logging.error(f'{ex}: {self.site} -> {sub_url}')
 
-    async def write_to_file(self, content: bytes, sub_url: str):
+    async def write_to_file(self, content, sub_url: str):
         logging.debug(f'Start write content to file: {self.site}_{sub_url}')
         if ONE_FILE:
             async with aiofiles.open(f'site_dir_{self.site}/save.html', 'ab+') as file:
@@ -50,9 +50,12 @@ class DownloadSite:
                 await file.flush()
         else:
             filename = sub_url[7:].replace('/', '_')
-            async with aiofiles.open(f'site_dir_{self.site}/{filename}_save.html', 'wb+') as file:
-                await file.write(content)
-                await file.flush()
+            try:
+                async with aiofiles.open(f'site_dir_{self.site}/{filename}_save.html', 'wb+') as file:
+                    await file.write(content)
+                    await file.flush()
+            except Exception as ex:
+                print(ex)
         logging.info(f'Content has successfully written: {self.site} -> {sub_url}')
 
         if self.main_page:
@@ -83,7 +86,7 @@ class DownloadSite:
                     (url not in self.links):
 
                 if not url.startswith('http'):
-                    url = self.url + url
+                    url = self.url + '/' + url
 
                 logging.debug(f'Found internal link for {self.site} -> {url}')
                 local_links.append(url)
@@ -108,6 +111,6 @@ async def main():
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.get_event_loop().run_until_complete(main())
     # loop = asyncio.get_event_loop()
     # loop.run_until_complete(main())
