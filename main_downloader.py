@@ -1,4 +1,3 @@
-import csv
 from bs4 import BeautifulSoup as bs4
 from tqdm.asyncio import tqdm
 import aiohttp
@@ -6,12 +5,11 @@ import asyncio
 import aiofiles
 import logging
 import os
-import openpyxl
 import pandas as pd
 
 logging.basicConfig(level=logging.DEBUG, filename='logs.log', filemode='w',
                     format='%(name)s - %(levelname)s - %(message)s')
-ONE_FILE = False
+ONE_FILE = True
 TIMEOUT = 10
 PROGRESS_BAR_ASCII = False
 
@@ -36,27 +34,31 @@ class DownloadSite:
                     else:
                         logging.error(f'While getting page {self.site} -> {sub_url}')
 
+            except aiohttp.TooManyRedirects as ex:
+                logging.error(f'{ex}: {self.site} -> {sub_url}')
+
             except asyncio.exceptions.TimeoutError as ex:
                 logging.error(f'{ex}: {self.site} -> {sub_url}')
 
-            except aiohttp.client_exceptions.ClientConnectorError as ex:
+            except aiohttp.ClientConnectorError as ex:
                 logging.error(f'{ex}: {self.site} -> {sub_url}')
 
     async def write_to_file(self, content, sub_url: str):
-        logging.debug(f'Start write content to file: {self.site}_{sub_url}')
         if ONE_FILE:
-            async with aiofiles.open(f'site_dir_{self.site}/save.html', 'ab+') as file:
+            logging.debug(f'Start write content to one file: {self.site}/save.html')
+            async with aiofiles.open(f'downloader/site_dir_{self.site}/save.html', 'ab+') as file:
                 await file.write(content)
                 await file.flush()
         else:
             filename = sub_url[7:].replace('/', '_')
+            logging.debug(f'Start write content to one file: {self.site}/{filename}.html')
             try:
-                async with aiofiles.open(f'site_dir_{self.site}/{filename}_save.html', 'wb+') as file:
+                async with aiofiles.open(f'downloader/site_dir_{self.site}/{filename}_save.html', 'wb+') as file:
                     await file.write(content)
                     await file.flush()
             except Exception as ex:
                 print(ex)
-        logging.info(f'Content has successfully written: {self.site} -> {sub_url}')
+        logging.info(f'Content has successfully written: {sub_url}')
 
         if self.main_page:
             self.main_page = False
@@ -64,7 +66,7 @@ class DownloadSite:
             await self.start_downloading_list(links_list=internal_links)
 
     async def __call__(self, *args, **kwargs):
-        os.makedirs(f'site_dir_{self.site}', exist_ok=True)
+        os.makedirs(f'downloader/site_dir_{self.site}', exist_ok=True)
         await self.start_downloading_list(links_list={self.url})
 
     async def start_downloading_list(self, links_list: set):
@@ -78,19 +80,37 @@ class DownloadSite:
         soup = bs4(html, 'html.parser')
         for link in tqdm(soup.find_all("a", href=True), ascii=PROGRESS_BAR_ASCII, desc=f'Subpages for {self.site}'):
             url: str = link['href']
-            if self.site[7:] != url[7:] and \
-                    self.site[7:] != url[8:] and \
-                    '/' in url and \
-                    ('catalog' not in url) and \
-                    (url not in local_links) and \
-                    (url not in self.links):
 
-                if not url.startswith('http'):
-                    url = self.url + '/' + url
+            if url in local_links or url in self.links:
+                continue
 
-                logging.debug(f'Found internal link for {self.site} -> {url}')
-                local_links.append(url)
-                self.links.add(url)
+            if ('catalog' in url) or ('wp-content' in url) or not('/' in url):
+                continue
+
+            if url.startswith('http'):
+                if not(self.site in url):
+                    continue  # Встретили ссылку на внешний ресурс
+            elif url.startswith('/#'):
+                continue
+            else:
+                url = self.url + '/' + url
+
+            if url.startswith('http://' + self.site):
+                if url[len('http://' + self.site):].startswith('/#'):
+                    continue
+            elif url.startswith('https://' + self.site):
+                if url[len('https://' + self.site):].startswith('/#'):
+                    continue
+
+            if url == f'http://{self.site}' or \
+                url == f'http://{self.site}/' or \
+                url == f'https://{self.site}' or \
+                url == f'https://{self.site}/':
+                continue
+
+            logging.debug(f'Found internal link for {self.site} -> {url}')
+            local_links.append(url)
+            self.links.add(url)
 
         return set(local_links)
 
