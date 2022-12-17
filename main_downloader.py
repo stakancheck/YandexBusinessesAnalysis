@@ -9,7 +9,7 @@ import pandas as pd
 
 logging.basicConfig(level=logging.DEBUG, filename='logs.log', filemode='w',
                     format='%(name)s - %(levelname)s - %(message)s')
-ONE_FILE = True
+ONE_FILE = False
 TIMEOUT = 10
 PROGRESS_BAR_ASCII = False
 
@@ -31,6 +31,9 @@ class DownloadSite:
                     logging.info(f'STATUS {resp.status}: {self.site} -> {sub_url}')
                     if resp.status == 200:
                         await self.write_to_file(content=await resp.read(), sub_url=sub_url)
+                    elif resp.status == 403:
+                        self.url = 'https://' + self.site
+                        await self.get_page_content(sub_url=self.url)
                     else:
                         logging.error(f'While getting page {self.site} -> {sub_url}')
 
@@ -84,7 +87,7 @@ class DownloadSite:
             if url in local_links or url in self.links:
                 continue
 
-            if ('catalog' in url) or ('wp-content' in url) or not('/' in url):
+            if ('catalog' in url) or ('product' in url) or ('category' in url) or ('wp-content' in url) or not('/' in url):
                 continue
 
             if url.startswith('http'):
@@ -126,7 +129,7 @@ async def main():
 
     logging.info('START WORKING')
 
-    for site_url in tqdm(urls, ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
+    for site_url in tqdm(urls[19:22], ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
         await DownloadSite(url=site_url)()
 
 

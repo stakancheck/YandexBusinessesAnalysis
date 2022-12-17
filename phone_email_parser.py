@@ -45,7 +45,7 @@ class PhoneEmailScraper:
 
     @staticmethod
     def phone_formatter(number: str) -> str:
-        res, n = re.subn(r'[-()\s:><,\"\'.]', '', number)
+        res, n = re.subn(r'[-()\s:><,\"\'.;]', '', number)
         if res.startswith('8'):
             res = '+7' + res[1:]
         return res
@@ -70,7 +70,7 @@ class PhoneEmailScraper:
 
 
 if __name__ == '__main__':
-    with open('downloader/site_dir_chery-service-spb.ru/save.html', 'r') as file:
+    with open('downloader/site_dir_avtotsentr-kgs-ulitsa-60-let-oktjabrja.clients.site/save.html', 'r') as file:
         content = file.read()
         parser = PhoneEmailScraper()
         pprint(parser(content))
