@@ -9,7 +9,7 @@ import pandas as pd
 
 logging.basicConfig(level=logging.DEBUG, filename='logs.log', filemode='w',
                     format='%(name)s - %(levelname)s - %(message)s')
-ONE_FILE = False
+ONE_FILE = True
 TIMEOUT = 10
 PROGRESS_BAR_ASCII = False
 
@@ -37,13 +37,16 @@ class DownloadSite:
                     else:
                         logging.error(f'While getting page {self.site} -> {sub_url}')
 
-            except aiohttp.TooManyRedirects as ex:
-                logging.error(f'{ex}: {self.site} -> {sub_url}')
+            # except aiohttp.TooManyRedirects as ex:
+            #     logging.error(f'{ex}: {self.site} -> {sub_url}')
+            #
+            # except asyncio.exceptions.TimeoutError as ex:
+            #     logging.error(f'{ex}: {self.site} -> {sub_url}')
+            #
+            # except aiohttp.ClientConnectorError as ex:
+            #     logging.error(f'{ex}: {self.site} -> {sub_url}')
 
-            except asyncio.exceptions.TimeoutError as ex:
-                logging.error(f'{ex}: {self.site} -> {sub_url}')
-
-            except aiohttp.ClientConnectorError as ex:
+            except Exception as ex:
                 logging.error(f'{ex}: {self.site} -> {sub_url}')
 
     async def write_to_file(self, content, sub_url: str):
@@ -81,13 +84,15 @@ class DownloadSite:
         logging.debug(f'Start catching up links for page: {self.site} -> {sub_url}')
         html = content.decode("utf-8")
         soup = bs4(html, 'html.parser')
-        for link in tqdm(soup.find_all("a", href=True), ascii=PROGRESS_BAR_ASCII, desc=f'Subpages for {self.site}'):
+        for link in soup.find_all("a", href=True):
             url: str = link['href']
 
             if url in local_links or url in self.links:
                 continue
 
-            if ('catalog' in url) or ('product' in url) or ('category' in url) or ('wp-content' in url) or not('/' in url):
+            if ('catalog' in url) or ('product' in url) or \
+                    ('service' in url) or ('model' in url) or \
+                    ('category' in url) or ('wp-content' in url) or not('/' in url):
                 continue
 
             if url.startswith('http'):
@@ -129,7 +134,7 @@ async def main():
 
     logging.info('START WORKING')
 
-    for site_url in tqdm(urls[19:22], ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
+    for site_url in tqdm(urls[:50], ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
         await DownloadSite(url=site_url)()
 
 

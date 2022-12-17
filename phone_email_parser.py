@@ -3,8 +3,12 @@ import requests
 from pprint import pprint
 
 
+DEBUG_MODE = False
+
+
 class PhoneEmailScraper:
     validate_phones = False
+    parse_town_phones = False
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:108.0) Gecko/20100101 Firefox/108.0',
@@ -45,10 +49,12 @@ class PhoneEmailScraper:
 
     @staticmethod
     def phone_formatter(number: str) -> str:
-        res, n = re.subn(r'[-()\s:><,\"\'.;]', '', number)
-        if res.startswith('8'):
-            res = '+7' + res[1:]
-        return res
+        digits = ''.join(re.findall(r'\d+', number))
+        if digits.startswith('8'):
+            digits = '+7' + digits[1:]
+        elif digits.startswith('7'):
+            digits = '+' + digits
+        return digits
 
     @staticmethod
     def get_phones(html_content: str) -> list[str]:
@@ -60,11 +66,14 @@ class PhoneEmailScraper:
         if PhoneEmailScraper.validate_phones:
             phone = list(filter(PhoneEmailScraper.phone_validate, phone))
 
-        # town_phone = re.findall(r'[^a-zA-Z0-9/][0-9]{3}[\s-]?[0-9]{2}[\s-]?[0-9]{2}[^a-zA-Z0-9/]', html_content)
-        # town_phone = list(set(map(PhoneEmailScraper.phone_formatter, town_phone)))
-        # results: list[str] = phone + town_phone
-
         results: list[str] = phone
+
+        if PhoneEmailScraper.parse_town_phones:
+            town_phone = re.findall(r'[^a-zA-Z0-9/][0-9]{3}[\s-]?[0-9]{2}[\s-]?[0-9]{2}[^a-zA-Z0-9/]', html_content)
+            town_phone = list(set(map(PhoneEmailScraper.phone_formatter, town_phone)))
+            results: list[str] = phone + town_phone
+
+        results = list(filter(lambda x: x != '+79999999999', results))
 
         return results if results else []
 
@@ -73,5 +82,6 @@ if __name__ == '__main__':
     with open('downloader/site_dir_avtotsentr-kgs-ulitsa-60-let-oktjabrja.clients.site/save.html', 'r') as file:
         content = file.read()
         parser = PhoneEmailScraper()
-        pprint(parser(content))
+        if DEBUG_MODE:
+            pprint(parser(content))
 
