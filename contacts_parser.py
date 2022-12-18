@@ -1,12 +1,23 @@
 import re
 import requests
+
 from pprint import pprint
+from dataclasses import dataclass, field
 
 
 DEBUG_MODE = False
 
 
-class PhoneEmailScraper:
+@dataclass
+class ContactsData:
+    phone_numbers: list[str] = field(default_factory=list)
+    emails: list[str] = field(default_factory=list)
+
+
+class ContactsParser:
+    """
+    Класс (инструмент) для парсинга и получения номеров телефонов и электронных почт с сайта
+    """
     validate_phones = False
     parse_town_phones = False
 
@@ -24,11 +35,27 @@ class PhoneEmailScraper:
         'Sec-Fetch-User': '?1',
     }
 
-    def __call__(self, html_content: str) -> dict[str, list[str]]:
-        return {
-            'emails': PhoneEmailScraper.get_emails(html_content),
-            'phones': PhoneEmailScraper.get_phones(html_content)
-        }
+    def __call__(self, html_content: str) -> ContactsData:
+        """
+        Псевдоним для get_ContactsParser.company_contacts()
+        :param html_content: HTML код сайта
+        :return: Объект ContactsData со номерами телефонов и электронными почтами компании
+        """
+        return ContactsParser.get_company_contacts(html_content=html_content)
+
+    @staticmethod
+    def get_company_contacts(html_content: str) -> ContactsData:
+        """
+        Функция для получения контактов с сайта
+        :param html_content:  HTML код сайта
+        :return: Объект ContactsData со номерами телефонов и электронными почтами компании
+        """
+
+        contacts = ContactsData(
+            phone_numbers=ContactsParser.get_phones(html_content),
+            emails=ContactsParser.get_emails(html_content)
+        )
+        return contacts
 
     @staticmethod
     def get_emails(html_content: str) -> list[str]:
@@ -42,7 +69,7 @@ class PhoneEmailScraper:
         data = {
             'tel': number[-10:],
         }
-        response = requests.post('https://spys.one/tel/', headers=PhoneEmailScraper.headers, data=data)
+        response = requests.post('https://spys.one/tel/', headers=ContactsParser.headers, data=data)
 
         return not ('Некорректный номер телефона' in response.text or
                     'Номер не найден в базе или некорректный' in response.text)
@@ -60,17 +87,17 @@ class PhoneEmailScraper:
     def get_phones(html_content: str) -> list[str]:
         phone = re.findall(r"[^a-zA-Z0-9]\+?[78]\s?[\s(]?[0-9]{3}[\-)]?\s?[0-9]"
                            r"{3}[-\s]?\s?[0-9]{2}[-,\s]?\s?[0-9]{2}[^a-zA-Z0-9]", html_content)
-        phone = list(set(map(PhoneEmailScraper.phone_formatter, phone)))
+        phone = list(set(map(ContactsParser.phone_formatter, phone)))
 
         # Validate phone with spys.one (Only 50 requests per hour)
-        if PhoneEmailScraper.validate_phones:
-            phone = list(filter(PhoneEmailScraper.phone_validate, phone))
+        if ContactsParser.validate_phones:
+            phone = list(filter(ContactsParser.phone_validate, phone))
 
         results: list[str] = phone
 
-        if PhoneEmailScraper.parse_town_phones:
+        if ContactsParser.parse_town_phones:
             town_phone = re.findall(r'[^a-zA-Z0-9/][0-9]{3}[\s-]?[0-9]{2}[\s-]?[0-9]{2}[^a-zA-Z0-9/]', html_content)
-            town_phone = list(set(map(PhoneEmailScraper.phone_formatter, town_phone)))
+            town_phone = list(set(map(ContactsParser.phone_formatter, town_phone)))
             results: list[str] = phone + town_phone
 
         results = list(filter(lambda x: x != '+79999999999', results))
@@ -81,7 +108,7 @@ class PhoneEmailScraper:
 if __name__ == '__main__':
     with open('downloader/site_dir_avtotsentr-kgs-ulitsa-60-let-oktjabrja.clients.site/save.html', 'r') as file:
         content = file.read()
-        parser = PhoneEmailScraper()
+        parser = ContactsParser()
         if DEBUG_MODE:
             pprint(parser(content))
 

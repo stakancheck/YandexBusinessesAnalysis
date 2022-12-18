@@ -1,11 +1,11 @@
 import os
 import logging
-from pprint import pprint
-
 import pandas as pd
+from pprint import pprint
 from itertools import islice
 from tqdm.asyncio import tqdm
-from phone_email_parser import PhoneEmailScraper
+from contacts_parser import ContactsParser, ContactsData
+from company_info_parser import CompanyInfoParser, CompanyInfoData
 
 
 DOWNLOAD_DIR = 'downloader'
@@ -15,14 +15,21 @@ logging.basicConfig(level=logging.DEBUG, filename='logs.log', filemode='w',
                     format='%(name)s - %(levelname)s - %(message)s')
 
 
-def get_phone_and_email(content: str) -> dict[str, list[str]]:
-    scraper = PhoneEmailScraper()
-    result = scraper(html_content=content)
+def get_phone_and_email(content: str) -> ContactsData:
+    scraper = ContactsParser()
+    result = scraper.get_company_contacts(html_content=content)
+    return result
+
+
+def get_company_info(content: str) -> CompanyInfoData:
+    scraper = CompanyInfoParser()
+    result = scraper.get_inn_data_from_html(html_content=content)
     return result
 
 
 if __name__ == '__main__':
-    for path, sub_dirs, files in tqdm(islice(os.walk(DOWNLOAD_DIR), 1, None), ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
+    for path, sub_dirs, files in tqdm(islice(os.walk(DOWNLOAD_DIR), 1, None),
+                                      ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
         if FILE_NAME in files:
             site_name = path[len(DOWNLOAD_DIR) + len('/site_dir_'):]
             file_to_parse = path + '/' + files[0]
@@ -33,9 +40,13 @@ if __name__ == '__main__':
                 html_content = str(file.read())
 
                 # Get phones and emails
-                phone_email_data = get_phone_and_email(content=html_content)
+                phone_email_data: ContactsData = get_phone_and_email(content=html_content)
                 logging.debug(f'Successfully get emails and phones for: {site_name}')
 
-                # print(phone_email_data)
+                # Get information about company
+                information_data: CompanyInfoData = get_company_info(content=html_content)
+                logging.debug(f'Successfully get information for: {site_name}')
+
+                pprint(information_data)
 
                 file.close()
