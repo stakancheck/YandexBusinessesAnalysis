@@ -97,7 +97,7 @@ class CompanyInfoParser:
         data = {
             'query': query
         }
-        res = requests.post(url, data=json.dumps(data), headers=headers)
+        res = requests.post(url, data=json.dumps(data), headers=headers, timeout=10)
         return res.json()
 
     @staticmethod
