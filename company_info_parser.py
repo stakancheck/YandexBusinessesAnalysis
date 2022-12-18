@@ -149,10 +149,7 @@ class CompanyInfoParser:
         info = CompanyInfoData()  # create default data
 
         for inn in CompanyInfoParser.get_INN(soup):
-            # Get data
             data = CompanyInfoParser.find_INN_OGRN('party', inn)['suggestions']
-
-            # Check: is data empty
             if not data:
                 return info
 
@@ -160,34 +157,35 @@ class CompanyInfoParser:
 
             if DEBUG_MODE:
                 pprint(data)
-
-            # Update dict and paste new data from found INN code
-            info.organization_name.append(data['value'])
+            info.organization_name.append(str(data['value']))
             if 'management' in data['data']:
-                info.general_director.append(data['data']['management']['name'])
+                info.general_director.append(str(data['data']['management']['name']))
             else:
-                info.general_director.append(data['data']['name']['full'])
-            info.type_of_company.append(data['data']['type'])
-            info.registration_date.append(data['data']['state']['registration_date'])
+                info.general_director.append(str(data['data']['name']['full']))
+            info.type_of_company.append(str(data['data']['type']))
+            info.registration_date_timestamp.append(str(data['data']['state']['registration_date']))
+            info.registration_date_datetime.append(
+                str(datetime.fromtimestamp(int(str(data['data']['state']['registration_date'])[:10])).strftime(
+                    '%Y-%m-%d')))
             if 'founders' in data['data']:
                 info.founders.append(data['data']['founders'])
             if 'inn' in data['data']:
-                info.inn.append(data['data']['inn'])
+                info.inn.append(str(data['data']['inn']))
             if 'ogrn' in data['data']:
-                info.ogrn.append(data['data']['ogrn'])
+                info.ogrn.append(str(data['data']['ogrn']))
             if 'kpp' in data['data']:
-                info.kpp.append(data['data']['kpp'])
+                info.kpp.append(str(data['data']['kpp']))
             if 'okpo' in data['data']:
                 info.okpo.append(data['data']['okpo'])
             if 'okato' in data['data']:
-                info.okato.append(data['data']['okato'])
+                info.okato.append(str(data['data']['okato']))
             if 'oktmo' in data['data']:
-                info.oktmo.append(data['data']['oktmo'])
+                info.oktmo.append(str(data['data']['oktmo']))
             if 'okogu' in data['data']:
-                info.okogu.append(data['data']['okogu'])
+                info.okogu.append(str(data['data']['okogu']))
             if 'address' in data['data']:
-                info.postal_code.append(data['data']['address']['data']['postal_code'])
-                info.address.append(data['data']['address']['value'])
+                info.postal_code.append(str(data['data']['address']['data']['postal_code']))
+                info.address.append(str(data['data']['address']['value']))
 
         return info
 
