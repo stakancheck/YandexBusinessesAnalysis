@@ -95,14 +95,6 @@ class DownloadSite:
                     ('category' in url) or ('wp-content' in url) or not('/' in url):
                 continue
 
-            if url.startswith('http'):
-                if not(self.site in url):
-                    continue  # Встретили ссылку на внешний ресурс
-            elif url.startswith('/#'):
-                continue
-            else:
-                url = self.url + '/' + url
-
             if url.startswith('http://' + self.site):
                 if url[len('http://' + self.site):].startswith('/#'):
                     continue
@@ -110,10 +102,20 @@ class DownloadSite:
                 if url[len('https://' + self.site):].startswith('/#'):
                     continue
 
+            if url.startswith('http'):
+                if not(self.site in url):
+                    continue  # Встретили ссылку на внешний ресурс
+            elif url.startswith('/#'):
+                continue
+            elif url.startswith('/'):
+                url = self.url + url
+            else:
+                url = self.url + '/' + url
+
             if url == f'http://{self.site}' or \
-                url == f'http://{self.site}/' or \
-                url == f'https://{self.site}' or \
-                url == f'https://{self.site}/':
+                    url == f'http://{self.site}/' or \
+                    url == f'https://{self.site}' or \
+                    url == f'https://{self.site}/':
                 continue
 
             logging.debug(f'Found internal link for {self.site} -> {url}')
@@ -134,7 +136,7 @@ async def main():
 
     logging.info('START WORKING')
 
-    for site_url in tqdm(urls[:50], ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
+    for site_url in tqdm(urls[48:150], ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
         await DownloadSite(url=site_url)()
 
 
