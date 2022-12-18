@@ -1,11 +1,10 @@
 import os
 import re
 import json
-from itertools import islice
-
 import requests
 
 from pprint import pprint
+from itertools import islice
 from bs4 import BeautifulSoup as bs4
 from dataclasses import dataclass, field
 
@@ -151,7 +150,13 @@ class CompanyInfoParser:
 
         for inn in CompanyInfoParser.get_INN(soup):
             # Get data
-            data = CompanyInfoParser.find_INN_OGRN('party', inn)['suggestions'][0]
+            data = CompanyInfoParser.find_INN_OGRN('party', inn)['suggestions']
+
+            # Check: is data empty
+            if not data:
+                return info
+
+            data = data[0]
 
             if DEBUG_MODE:
                 pprint(data)
@@ -198,12 +203,22 @@ class CompanyInfoParser:
 if __name__ == '__main__':
     # Parse all files from downloader dir
 
-    for path, sub_dirs, files in islice(os.walk('downloader'), 1, None):
-        if 'save.html' in files:
-            file_to_parse = path + '/' + files[0]
-            with open(file_to_parse, 'rb') as file:
-                content = str(file.read())
+    ONE_FILE_MODE = True
 
-                info_parser = CompanyInfoParser()
-                info_parser(html_content=content)
-                # pprint(info_parser(html_content=content))
+    if ONE_FILE_MODE:
+        with open('downloader/site_dir_avtovek.lada.ru/save.html', 'rb') as file:
+            content = str(file.read())
+
+            info_parser = CompanyInfoParser()
+            info_parser(html_content=content)
+
+    else:
+        for path, sub_dirs, files in islice(os.walk('downloader'), 1, None):
+            if 'save.html' in files:
+                file_to_parse = path + '/' + files[0]
+                with open(file_to_parse, 'rb') as file:
+                    content = str(file.read())
+
+                    info_parser = CompanyInfoParser()
+                    info_parser(html_content=content)
+                    # pprint(info_parser(html_content=content))

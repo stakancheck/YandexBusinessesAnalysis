@@ -40,13 +40,19 @@ if __name__ == '__main__':
                 html_content = str(file.read())
 
                 # Get phones and emails
-                phone_email_data: ContactsData = get_phone_and_email(content=html_content)
-                logging.debug(f'Successfully get emails and phones for: {site_name}')
+                try:
+                    phone_email_data: ContactsData = get_phone_and_email(content=html_content)
+                    logging.debug(f'Successfully get emails and phones for: {site_name}')
+                except Exception as e:
+                    logging.error(f'GETTING CONTACTS: {e}')
 
                 # Get information about company
-                information_data: CompanyInfoData = get_company_info(content=html_content)
-                logging.debug(f'Successfully get information for: {site_name}')
+                try:
+                    information_data: CompanyInfoData = get_company_info(content=html_content)
+                    logging.debug(f'Successfully get information for: {site_name}')
+                except Exception as e:
+                    logging.error(f'GETTING INFORMATION: {e}')
 
-                pprint(information_data)
+                # pprint(information_data)
 
                 file.close()
