@@ -3,8 +3,10 @@ import re
 import json
 import requests
 
+
 from pprint import pprint
 from itertools import islice
+from datetime import datetime
 from bs4 import BeautifulSoup as bs4
 from dataclasses import dataclass, field
 
@@ -19,7 +21,8 @@ class CompanyInfoData:
     organization_name: list[str] = field(default_factory=list)
     general_director: list[str] = field(default_factory=list)
     type_of_company: list[str] = field(default_factory=list)
-    registration_date: list[str] = field(default_factory=list)
+    registration_date_datetime: list[str] = field(default_factory=list)
+    registration_date_timestamp: list[str] = field(default_factory=list)
     founders: list[str] = field(default_factory=list)
     inn: list[str] = field(default_factory=list)
     ogrn: list[str] = field(default_factory=list)
@@ -168,7 +171,10 @@ class CompanyInfoParser:
                 str(datetime.fromtimestamp(int(str(data['data']['state']['registration_date'])[:10])).strftime(
                     '%Y-%m-%d')))
             if 'founders' in data['data']:
-                info.founders.append(data['data']['founders'])
+                if data['data']['founders'] is list:
+                    info.founders.extend(data['data']['founders'])
+                else:
+                    info.founders.append(data['data']['founders'])
             if 'inn' in data['data']:
                 info.inn.append(str(data['data']['inn']))
             if 'ogrn' in data['data']:
@@ -176,7 +182,7 @@ class CompanyInfoParser:
             if 'kpp' in data['data']:
                 info.kpp.append(str(data['data']['kpp']))
             if 'okpo' in data['data']:
-                info.okpo.append(data['data']['okpo'])
+                info.okpo.append(str(data['data']['okpo']))
             if 'okato' in data['data']:
                 info.okato.append(str(data['data']['okato']))
             if 'oktmo' in data['data']:

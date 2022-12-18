@@ -14,8 +14,9 @@ WRITE_HEADER = True
 DOWNLOAD_DIR = 'downloader'
 FILE_NAME = 'save.html'
 PROGRESS_BAR_ASCII = False
-HEADERS = ('url', 'name', 'phones', 'emails', 'general_director', 'type_of_company', 'registration_date',
-           'founders', 'inn', 'ogrn', 'kpp', 'okpo', 'okato', 'oktmo', 'okogu', 'postal_code', 'address')
+HEADERS = ('url', 'name', 'phones', 'emails', 'general_director', 'type_of_company',
+           'registration_date_datetime', 'registration_date_datetime', 'founders',
+           'inn', 'ogrn', 'kpp', 'okpo', 'okato', 'oktmo', 'okogu', 'postal_code', 'address')
 
 logging.basicConfig(level=logging.DEBUG, filename='logs.log', filemode='w',
                     format='%(name)s - %(levelname)s - %(message)s')
