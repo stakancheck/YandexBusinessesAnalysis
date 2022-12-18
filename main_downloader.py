@@ -136,7 +136,7 @@ async def main():
 
     logging.info('START WORKING')
 
-    for site_url in tqdm(urls[48:150], ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
+    for site_url in tqdm(urls[:4000], ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
         await DownloadSite(url=site_url)()
 
 

@@ -172,9 +172,9 @@ class CompanyInfoParser:
                     '%Y-%m-%d')))
             if 'founders' in data['data']:
                 if data['data']['founders'] is list:
-                    info.founders.extend(data['data']['founders'])
+                    info.founders.extend(*list(map(str, data['data']['founders'])))
                 else:
-                    info.founders.append(data['data']['founders'])
+                    info.founders.append(str(data['data']['founders']))
             if 'inn' in data['data']:
                 info.inn.append(str(data['data']['inn']))
             if 'ogrn' in data['data']:

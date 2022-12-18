@@ -35,7 +35,7 @@ def get_company_info(content: str) -> CompanyInfoData:
 
 
 def iter_to_str(data: list) -> str:
-    return '&'.join(data)
+    return '&'.join(data) if data else 'None'
 
 
 def transform_data_to_write(site_url: str, contacts: ContactsData, info: CompanyInfoData) -> list:
@@ -46,7 +46,7 @@ def transform_data_to_write(site_url: str, contacts: ContactsData, info: Company
 
     data_to_write = [
         site_url,
-        org_name,
+        org_name if org_name else 'None',
         iter_to_str(phones),
         iter_to_str(emails),
         *list(map(iter_to_str, over_info))
