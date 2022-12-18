@@ -117,7 +117,7 @@ class CompanyInfoParser:
                     len(str(int(digit))) == 13 and CompanyInfoParser.prov_inn_valid_12(str(int(digit[:-1]))))) and (
                     digit[-1] == '8' or digit[-1] == '+' or digit[-1] == ',' or digit[-1] == '.' or digit[-1] == '7'):
                 if len(CompanyInfoParser.find_INN_OGRN('party', digit[:-1])['suggestions']) != 0:
-                    INN_sp.append(int(digit))
+                    INN_sp.append(int(digit[:-1]))
         return list(set(INN_sp))
 
     @staticmethod
@@ -135,7 +135,7 @@ class CompanyInfoParser:
             elif len(str(int(digit))) == 14 and CompanyInfoParser.prov_ogrn_valid(str(int(digit[:-1]))) and (
                     digit[-1] == '8' or digit[-1] == '+' or digit[-1] == ',' or digit[-1] == '.' or digit[-1] == '7'):
                 if len(CompanyInfoParser.find_INN_OGRN('party', digit[:-1])['suggestions']) != 0:
-                    OGRN_sp.append(int(digit))
+                    OGRN_sp.append(int(digit[:-1]))
         return list(set(OGRN_sp))
 
     @staticmethod
