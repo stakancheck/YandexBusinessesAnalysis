@@ -7,12 +7,14 @@ import concurrent.futures
 from datetime import datetime
 
 from bs4 import BeautifulSoup as bs4
+from requests.adapters import HTTPAdapter
+from urllib3 import Retry
 
 logging.basicConfig(level=logging.DEBUG,
                     filename='logs.log',
                     filemode='w',
                     format='%(name)s - %(levelname)s - %(message)s')
-logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+# logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 
 class MainDownloader:
@@ -21,23 +23,31 @@ class MainDownloader:
         "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36"
     }
 
-    TIMEOUT = 10
+    TIMEOUT = 5
+    IGNORE_LIST = ['drom.com', 'catalog', 'product', 'model',
+                   'wp-content', 'category', 'categories',
+                   'product', 'marki', 'news', 'novosti', 'assets', 'upload', 'cache']
 
     @staticmethod
     def download_site(domain: str):
         logging.debug(f'Start downloading site: {domain}')
 
+        # Костыль
+        if 'drom.com' in domain:
+            return None
+
+        session = requests.Session()
+        retry = Retry(total=3, connect=3, backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('https://', adapter)
+        session.mount('http://', adapter)
+
         try:
             master_url = f'https://{domain}'
-            response = requests.get(url=master_url,
-                                    headers=MainDownloader.HEADERS,
-                                    timeout=MainDownloader.TIMEOUT)
 
-            if response.status_code == 403:
-                master_url = f'http://{domain}'
-                response = requests.get(url=master_url,
-                                        headers=MainDownloader.HEADERS,
-                                        timeout=MainDownloader.TIMEOUT)
+            response = session.get(url=master_url,
+                                   headers=MainDownloader.HEADERS,
+                                   timeout=MainDownloader.TIMEOUT)
 
             if response.status_code == 200:
                 links = MainDownloader.get_links(html_content=response.content,
@@ -52,34 +62,37 @@ class MainDownloader:
             logging.error(f'While getting main page: {domain}: Error: {e}')
 
     @staticmethod
+    def check_url(url: str, domain: str, master_link: str) -> bool:
+        for ignore in MainDownloader.IGNORE_LIST:
+            if ignore in url:
+                return False
+
+        if url.startswith('/#') or url.startswith(master_link + '/#') \
+                or not ('/' in url) or url.count('/') > 5:
+            return False
+
+        if '.com' in url or '.ru' in url or '.site' in url:
+            if not (domain in url):
+                return False
+
+        return url.startswith('http') and not(domain in url)
+
+    @staticmethod
     def get_links(html_content: bytes, master_link: str, domain: str, encoding: str = 'utf-8') -> list[str]:
         logging.debug(f'Start get links for: {domain}')
         local_links = [master_link]
         html = html_content.decode(encoding=encoding)
         soup = bs4(html, 'html.parser')
-        for link in soup.find_all("a", href=True):
+        for link in soup.find_all('a', href=True):
             url: str = link['href']
 
-            if ('catalog' in url) or ('product' in url) or \
-                    ('service' in url) or ('model' in url) or \
-                    ('category' in url) or ('wp-content' in url) or not ('/' in url):
-                continue
-
-            if url.startswith('/#') or url.startswith(master_link + '/#'):
-                continue
-
-            if url.startswith('http'):
-                if domain in url:
-                    continue
-            elif url.startswith('/'):
-                url = master_link + url
-            else:
-                url = master_link + '/' + url
-
-            if url in local_links:
-                continue
-
-            local_links.append(url)
+            if MainDownloader.check_url(url=url, domain=domain, master_link=master_link):
+                if url.startswith('/'):
+                    url = master_link + url
+                elif not url.startswith('http'):
+                    url = master_link + '/' + url
+                if not (url in local_links):
+                    local_links.append(url)
 
         logging.info(f'Successfully found {len(local_links)} subpages for {domain}')
 
@@ -87,20 +100,17 @@ class MainDownloader:
 
     @staticmethod
     def download_sub_pages(links_subpages: list[str], domain: str):
+        session = requests.Session()
+        retry = Retry(total=3, connect=3, backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('https://', adapter)
+        session.mount('http://', adapter)
+
         for link in links_subpages:
             try:
-                response = requests.get(url=link,
-                                        headers=MainDownloader.HEADERS,
-                                        timeout=MainDownloader.TIMEOUT)
-
-                if response.status_code == 403:
-                    if link.startswith('http://'):
-                        link = 'https://' + link[7:]
-                    else:
-                        link = 'http://' + link[8:]
-                    response = requests.get(url=link,
-                                            headers=MainDownloader.HEADERS,
-                                            timeout=MainDownloader.TIMEOUT)
+                response = session.get(url=link,
+                                       headers=MainDownloader.HEADERS,
+                                       timeout=MainDownloader.TIMEOUT)
 
                 if response.status_code == 200:
                     try:
@@ -131,7 +141,7 @@ def main():
         res.append(all_urls.keys()[0])
         return res
 
-    domains = get_urls_from_database()[50:150]
+    domains = get_urls_from_database()[:100]
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
         executor.map(MainDownloader.download_site, domains)
