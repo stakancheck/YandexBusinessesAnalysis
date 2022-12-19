@@ -1,146 +1,155 @@
-from bs4 import BeautifulSoup as bs4
-from tqdm.asyncio import tqdm
-import aiohttp
-import asyncio
-import aiofiles
-import logging
 import os
+import sys
+import logging
+import requests
 import pandas as pd
+import concurrent.futures
+from datetime import datetime
 
-logging.basicConfig(level=logging.DEBUG, filename='logs.log', filemode='w',
+from bs4 import BeautifulSoup as bs4
+from requests.adapters import HTTPAdapter
+from urllib3 import Retry
+
+logging.basicConfig(level=logging.DEBUG,
+                    filename='logs.log',
+                    filemode='w',
                     format='%(name)s - %(levelname)s - %(message)s')
-ONE_FILE = True
-TIMEOUT = 10
-PROGRESS_BAR_ASCII = False
+# logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
 
 
-class DownloadSite:
-    def __init__(self, url: str, protocol: str = 'http://'):
-        self.protocol = protocol
-        self.site = url
-        self.url = protocol + url
-        self.links = {self.url}
-        self.main_page = True
+class MainDownloader:
+    HEADERS = {
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36"
+    }
 
-    async def get_page_content(self, sub_url: str):
-        logging.debug(f'Start get site by url: {self.site} -> {sub_url}')
+    TIMEOUT = 5
+    IGNORE_LIST = ['drom.com', 'catalog', 'product', 'model',
+                   'wp-content', 'category', 'categories',
+                   'product', 'marki', 'news', 'novosti', 'assets', 'upload', 'cache']
 
-        async with aiohttp.ClientSession(trust_env=True) as session:
-            try:
-                async with session.get(sub_url, ssl=False, timeout=TIMEOUT) as resp:
-                    logging.info(f'STATUS {resp.status}: {self.site} -> {sub_url}')
-                    if resp.status == 200:
-                        await self.write_to_file(content=await resp.read(), sub_url=sub_url)
-                    elif resp.status == 403:
-                        self.url = 'https://' + self.site
-                        await self.get_page_content(sub_url=self.url)
-                    else:
-                        logging.error(f'While getting page {self.site} -> {sub_url}')
+    @staticmethod
+    def download_site(domain: str):
+        logging.debug(f'Start downloading site: {domain}')
 
-            # except aiohttp.TooManyRedirects as ex:
-            #     logging.error(f'{ex}: {self.site} -> {sub_url}')
-            #
-            # except asyncio.exceptions.TimeoutError as ex:
-            #     logging.error(f'{ex}: {self.site} -> {sub_url}')
-            #
-            # except aiohttp.ClientConnectorError as ex:
-            #     logging.error(f'{ex}: {self.site} -> {sub_url}')
+        # Костыль
+        if 'drom.com' in domain:
+            return None
 
-            except Exception as ex:
-                logging.error(f'{ex}: {self.site} -> {sub_url}')
+        session = requests.Session()
+        retry = Retry(total=3, connect=3, backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('https://', adapter)
+        session.mount('http://', adapter)
 
-    async def write_to_file(self, content, sub_url: str):
-        if ONE_FILE:
-            logging.debug(f'Start write content to one file: {self.site}/save.html')
-            async with aiofiles.open(f'downloader/site_dir_{self.site}/save.html', 'ab+') as file:
-                await file.write(content)
-                await file.flush()
-        else:
-            filename = sub_url[7:].replace('/', '_')
-            logging.debug(f'Start write content to one file: {self.site}/{filename}.html')
-            try:
-                async with aiofiles.open(f'downloader/site_dir_{self.site}/{filename}_save.html', 'wb+') as file:
-                    await file.write(content)
-                    await file.flush()
-            except Exception as ex:
-                print(ex)
-        logging.info(f'Content has successfully written: {sub_url}')
+        try:
+            master_url = f'https://{domain}'
 
-        if self.main_page:
-            self.main_page = False
-            internal_links = await self.find_links(content, sub_url)
-            await self.start_downloading_list(links_list=internal_links)
+            response = session.get(url=master_url,
+                                   headers=MainDownloader.HEADERS,
+                                   timeout=MainDownloader.TIMEOUT)
 
-    async def __call__(self, *args, **kwargs):
-        os.makedirs(f'downloader/site_dir_{self.site}', exist_ok=True)
-        await self.start_downloading_list(links_list={self.url})
+            if response.status_code == 200:
+                links = MainDownloader.get_links(html_content=response.content,
+                                                 master_link=master_url,
+                                                 domain=domain,
+                                                 encoding=response.encoding)
+                MainDownloader.download_sub_pages(links_subpages=links, domain=domain)
+            else:
+                logging.error(f'Response {response.status_code} of main page: {domain}')
 
-    async def start_downloading_list(self, links_list: set):
-        for site in links_list:
-            await self.get_page_content(sub_url=site)
+        except Exception as e:
+            logging.error(f'While getting main page: {domain}: Error: {e}')
 
-    async def find_links(self, content: bytes, sub_url: str):
-        local_links = []
-        logging.debug(f'Start catching up links for page: {self.site} -> {sub_url}')
-        html = content.decode("utf-8")
+    @staticmethod
+    def check_url(url: str, domain: str, master_link: str) -> bool:
+        for ignore in MainDownloader.IGNORE_LIST:
+            if ignore in url:
+                return False
+
+        if url.startswith('/#') or url.startswith(master_link + '/#') \
+                or not ('/' in url) or url.count('/') > 5:
+            return False
+
+        if '.com' in url or '.ru' in url or '.site' in url:
+            if not (domain in url):
+                return False
+
+        return url.startswith('http') and not(domain in url)
+
+    @staticmethod
+    def get_links(html_content: bytes, master_link: str, domain: str, encoding: str = 'utf-8') -> list[str]:
+        logging.debug(f'Start get links for: {domain}')
+        local_links = [master_link]
+        html = html_content.decode(encoding=encoding)
         soup = bs4(html, 'html.parser')
-        for link in soup.find_all("a", href=True):
+        for link in soup.find_all('a', href=True):
             url: str = link['href']
 
-            if url in local_links or url in self.links:
-                continue
+            if MainDownloader.check_url(url=url, domain=domain, master_link=master_link):
+                if url.startswith('/'):
+                    url = master_link + url
+                elif not url.startswith('http'):
+                    url = master_link + '/' + url
+                if not (url in local_links):
+                    local_links.append(url)
 
-            if ('catalog' in url) or ('product' in url) or \
-                    ('service' in url) or ('model' in url) or \
-                    ('category' in url) or ('wp-content' in url) or not('/' in url):
-                continue
+        logging.info(f'Successfully found {len(local_links)} subpages for {domain}')
 
-            if url.startswith('http://' + self.site):
-                if url[len('http://' + self.site):].startswith('/#'):
-                    continue
-            elif url.startswith('https://' + self.site):
-                if url[len('https://' + self.site):].startswith('/#'):
-                    continue
+        return local_links
 
-            if url.startswith('http'):
-                if not(self.site in url):
-                    continue  # Встретили ссылку на внешний ресурс
-            elif url.startswith('/#'):
-                continue
-            elif url.startswith('/'):
-                url = self.url + url
-            else:
-                url = self.url + '/' + url
+    @staticmethod
+    def download_sub_pages(links_subpages: list[str], domain: str):
+        session = requests.Session()
+        retry = Retry(total=3, connect=3, backoff_factor=0.5)
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('https://', adapter)
+        session.mount('http://', adapter)
 
-            if url == f'http://{self.site}' or \
-                    url == f'http://{self.site}/' or \
-                    url == f'https://{self.site}' or \
-                    url == f'https://{self.site}/':
-                continue
+        for link in links_subpages:
+            try:
+                response = session.get(url=link,
+                                       headers=MainDownloader.HEADERS,
+                                       timeout=MainDownloader.TIMEOUT)
 
-            logging.debug(f'Found internal link for {self.site} -> {url}')
-            local_links.append(url)
-            self.links.add(url)
+                if response.status_code == 200:
+                    try:
+                        MainDownloader.write_to_file(content=response.content,
+                                                     domain=domain)
+                        logging.info(f'Successfully save subpage: {link}')
+                    except Exception as e:
+                        logging.error(f'While save subpage: {link}: Error: {e}')
 
-        return set(local_links)
+                else:
+                    logging.error(f'Response {response.status_code} of subpage: {link}')
+
+            except Exception as e:
+                logging.error(f'While getting subpage: {link}: Error: {e}')
+
+    @staticmethod
+    def write_to_file(content: bytes, domain: str):
+        os.makedirs(f'downloader2/site_dir_{domain}', exist_ok=True)
+        with open(f'downloader2/site_dir_{domain}/save.html', 'ab+') as file:
+            file.write(content)
+            file.close()
 
 
-async def main():
+def main():
     def get_urls_from_database():
         all_urls = pd.read_csv('all_urls.csv', delimiter='\t')
-        urls = all_urls.iloc[:, 0].tolist()
-        urls.append(all_urls.keys()[0])
-        return urls
+        res = all_urls.iloc[:, 0].tolist()
+        res.append(all_urls.keys()[0])
+        return res
 
-    urls = get_urls_from_database()
+    domains = get_urls_from_database()[:100]
 
-    logging.info('START WORKING')
-
-    for site_url in tqdm(urls[:4000], ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
-        await DownloadSite(url=site_url)()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
+        executor.map(MainDownloader.download_site, domains)
 
 
 if __name__ == '__main__':
-    asyncio.get_event_loop().run_until_complete(main())
-    # loop = asyncio.get_event_loop()
-    # loop.run_until_complete(main())
+    start_time = datetime.now()
+    logging.info(f'START WORKING AT {start_time}')
+    main()
+    finish_time = datetime.now()
+    logging.info(f'FINISHED! TIME TO EXECUTE: {finish_time - start_time}')
