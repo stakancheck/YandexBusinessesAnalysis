@@ -108,7 +108,7 @@ if __name__ == '__main__':
         if WRITE_HEADER:
             db_writer.writerow(HEADERS)
 
-        files = islice(os.walk(DOWNLOAD_DIR), 388, None)
+        files = islice(os.walk(DOWNLOAD_DIR), 1, None)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
             executor.map(main, files)

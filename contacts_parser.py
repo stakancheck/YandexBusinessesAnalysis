@@ -39,7 +39,7 @@ class ContactsParser:
         """
         Псевдоним для get_ContactsParser.company_contacts()
         :param html_content: HTML код сайта
-        :return: Объект ContactsData со номерами телефонов и электронными почтами компании
+        :return: Объект ContactsData с номерами телефонов и электронными почтами компании
         """
         return ContactsParser.get_company_contacts(html_content=html_content)
 
@@ -47,8 +47,8 @@ class ContactsParser:
     def get_company_contacts(html_content: str) -> ContactsData:
         """
         Функция для получения контактов с сайта
-        :param html_content:  HTML код сайта
-        :return: Объект ContactsData со номерами телефонов и электронными почтами компании
+        :param html_content: HTML код сайта
+        :return: Объект ContactsData с номерами телефонов и электронными почтами компании
         """
 
         contacts = ContactsData(
@@ -58,9 +58,19 @@ class ContactsParser:
         return contacts
 
     @staticmethod
+    def email_filter(email: str) -> bool:
+        res = True
+        ignore_list = ['.svg', '.png', '.jpg', '.webp', '.bmp', '.gif']
+        for ignore in ignore_list:
+            if ignore in email:
+                res = False
+        return res
+
+    @staticmethod
     def get_emails(html_content: str) -> list[str]:
         email = re.findall('[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,5}', html_content)
         email = list(set(email))
+        email = list(filter(ContactsParser.email_filter, email))
 
         return email if email else []
 

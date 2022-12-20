@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup as bs4
 from dataclasses import dataclass, field
 
 
-API_KEY = '130656c1bdfb2b0aacbbec25cdaa90aae3eddadd'
+API_KEY = 'b0e75a2740362b412e6b1e40b913f804a18934a4'
 BASE_URL = 'https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/'
 DEBUG_MODE = False
 
