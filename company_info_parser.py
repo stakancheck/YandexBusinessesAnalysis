@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup as bs4
 from dataclasses import dataclass, field
 
 
-API_KEY = 'ad2573789ca9cb74054e1c1447032bdaf61c6ee4'
+API_KEY = '130656c1bdfb2b0aacbbec25cdaa90aae3eddadd'
 BASE_URL = 'https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/'
 DEBUG_MODE = False
 
@@ -166,10 +166,10 @@ class CompanyInfoParser:
             else:
                 info.general_director.append(str(data['data']['name']['full']))
             info.type_of_company.append(str(data['data']['type']))
-            info.registration_date_timestamp.append(str(data['data']['state']['registration_date']))
+            date = data['data']['state']['registration_date'] // 1000
+            info.registration_date_timestamp.append(str(date))
             info.registration_date_datetime.append(
-                str(datetime.fromtimestamp(int(str(data['data']['state']['registration_date'])[:10])).strftime(
-                    '%Y-%m-%d')))
+                str(datetime.fromtimestamp(date).strftime('%Y-%m-%d')))
             if 'founders' in data['data']:
                 if data['data']['founders'] is list:
                     info.founders.extend(*list(map(str, data['data']['founders'])))

@@ -11,11 +11,11 @@ from contacts_parser import ContactsParser, ContactsData
 from company_info_parser import CompanyInfoParser, CompanyInfoData
 
 WRITE_HEADER = True
-DOWNLOAD_DIR = 'downloader'
+DOWNLOAD_DIR = 'downloader2'
 FILE_NAME = 'save.html'
 PROGRESS_BAR_ASCII = False
 HEADERS = ('url', 'name', 'phones', 'emails', 'general_director', 'type_of_company',
-           'registration_date_datetime', 'registration_date_datetime', 'founders',
+           'registration_date_datetime', 'registration_date_timestamp', 'founders',
            'inn', 'ogrn', 'kpp', 'okpo', 'okato', 'oktmo', 'okogu', 'postal_code', 'address')
 
 logging.basicConfig(level=logging.DEBUG, filename='logs.log', filemode='w',
@@ -46,7 +46,7 @@ def transform_data_to_write(site_url: str, contacts: ContactsData, info: Company
 
     data_to_write = [
         site_url,
-        org_name if org_name else 'None',
+        iter_to_str(org_name) if org_name else 'None',
         iter_to_str(phones),
         iter_to_str(emails),
         *list(map(iter_to_str, over_info))
@@ -108,7 +108,7 @@ if __name__ == '__main__':
         if WRITE_HEADER:
             db_writer.writerow(HEADERS)
 
-        files = islice(os.walk(DOWNLOAD_DIR), 1, None)
+        files = islice(os.walk(DOWNLOAD_DIR), 388, None)
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
             executor.map(main, files)
