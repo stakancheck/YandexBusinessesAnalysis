@@ -11,7 +11,7 @@ from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
 logging.basicConfig(level=logging.DEBUG,
-                    filename='logs.log',
+                    filename='../../logs.log',
                     filemode='w',
                     format='%(name)s - %(levelname)s - %(message)s')
 # logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
@@ -136,7 +136,7 @@ class MainDownloader:
 
 def main():
     def get_urls_from_database():
-        all_urls = pd.read_csv('all_urls.csv', delimiter='\t')
+        all_urls = pd.read_csv('../../all_urls.csv', delimiter='\t')
         res = all_urls.iloc[:, 0].tolist()
         res.append(all_urls.keys()[0])
         return res

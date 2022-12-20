@@ -11,14 +11,14 @@ from contacts_parser import ContactsParser, ContactsData
 from company_info_parser import CompanyInfoParser, CompanyInfoData
 
 WRITE_HEADER = True
-DOWNLOAD_DIR = 'downloader2'
+DOWNLOAD_DIR = '../../downloader2'
 FILE_NAME = 'save.html'
 PROGRESS_BAR_ASCII = False
 HEADERS = ('url', 'name', 'phones', 'emails', 'general_director', 'type_of_company',
            'registration_date_datetime', 'registration_date_timestamp', 'founders',
            'inn', 'ogrn', 'kpp', 'okpo', 'okato', 'oktmo', 'okogu', 'postal_code', 'address')
 
-logging.basicConfig(level=logging.DEBUG, filename='logs.log', filemode='w',
+logging.basicConfig(level=logging.DEBUG, filename='../../logs.log', filemode='w',
                     format='%(name)s - %(levelname)s - %(message)s')
 
 
@@ -101,7 +101,7 @@ def main(kvargs):
 
 
 if __name__ == '__main__':
-    with open('database.csv', 'w+', encoding='UTF8') as file_db:
+    with open('../../database.csv', 'w+', encoding='UTF8') as file_db:
 
         db_writer = csv.writer(file_db)
 
