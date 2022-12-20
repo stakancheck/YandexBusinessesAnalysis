@@ -1,6 +1,7 @@
 import os
 import csv
 import logging
+import concurrent.futures
 
 from pprint import pprint
 from itertools import islice
@@ -8,7 +9,6 @@ from tqdm.asyncio import tqdm
 from dataclasses import asdict
 from contacts_parser import ContactsParser, ContactsData
 from company_info_parser import CompanyInfoParser, CompanyInfoData
-
 
 WRITE_HEADER = True
 DOWNLOAD_DIR = 'downloader'
@@ -55,52 +55,62 @@ def transform_data_to_write(site_url: str, contacts: ContactsData, info: Company
     return data_to_write
 
 
+def main(kvargs):
+    path, sub_dirs, files = kvargs
+
+    if FILE_NAME in files:
+        site_name = path[len(DOWNLOAD_DIR) + len('/site_dir_'):]
+        file_to_parse = path + '/' + files[0]
+
+        logging.debug(f'Start scrapping site: {site_name}')
+
+        with open(file_to_parse, 'rb') as file:
+            html_content = str(file.read())
+
+            # Get phones and emails
+            try:
+                phone_email_data: ContactsData = get_phone_and_email(content=html_content)
+                logging.debug(f'Successfully get emails and phones for: {site_name}')
+            except Exception as e:
+                logging.error(f'GETTING CONTACTS: {e}')
+
+            # Get information about company
+            try:
+                information_data: CompanyInfoData = get_company_info(content=html_content)
+                logging.debug(f'Successfully get information for: {site_name}')
+            except Exception as e:
+                logging.error(f'GETTING INFORMATION: {e}')
+
+            # Start write data
+            data = transform_data_to_write(
+                site_url=site_name,
+                contacts=phone_email_data,
+                info=information_data
+            )
+
+            try:
+                db_writer.writerow(data)
+                file_db.flush()
+
+                print(f'Successfully written {site_name}')
+                logging.info(f'Successfully written {site_name}')
+            except Exception as e:
+                logging.error(f'WRITING DATA: {e}')
+
+            file.close()
+
+
 if __name__ == '__main__':
-    with open('database.csv', 'a+', encoding='UTF8') as file_db:
+    with open('database.csv', 'w+', encoding='UTF8') as file_db:
 
         db_writer = csv.writer(file_db)
 
         if WRITE_HEADER:
             db_writer.writerow(HEADERS)
 
-        for path, sub_dirs, files in tqdm(islice(os.walk(DOWNLOAD_DIR), 1, None),
-                                          ascii=PROGRESS_BAR_ASCII, desc='Main progress'):
-            if FILE_NAME in files:
-                site_name = path[len(DOWNLOAD_DIR) + len('/site_dir_'):]
-                file_to_parse = path + '/' + files[0]
+        files = islice(os.walk(DOWNLOAD_DIR), 1, None)
 
-                logging.debug(f'Start scrapping site: {site_name}')
-
-                with open(file_to_parse, 'rb') as file:
-                    html_content = str(file.read())
-
-                    # Get phones and emails
-                    try:
-                        phone_email_data: ContactsData = get_phone_and_email(content=html_content)
-                        logging.debug(f'Successfully get emails and phones for: {site_name}')
-                    except Exception as e:
-                        logging.error(f'GETTING CONTACTS: {e}')
-
-                    # Get information about company
-                    try:
-                        information_data: CompanyInfoData = get_company_info(content=html_content)
-                        logging.debug(f'Successfully get information for: {site_name}')
-                    except Exception as e:
-                        logging.error(f'GETTING INFORMATION: {e}')
-
-                    # Start write data
-                    data = transform_data_to_write(
-                        site_url=site_name,
-                        contacts=phone_email_data,
-                        info=information_data
-                    )
-
-                    try:
-                        db_writer.writerow(data)
-                        file_db.flush()
-                    except Exception as e:
-                        logging.error(f'WRITING DATA: {e}')
-
-                    file.close()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=30) as executor:
+            executor.map(main, files)
 
         file_db.close()

@@ -85,8 +85,7 @@ class ContactsParser:
 
     @staticmethod
     def get_phones(html_content: str) -> list[str]:
-        phone = re.findall(r"[^a-zA-Z0-9]\+?[78]\s?[\s(]?[0-9]{3}[\-)]?\s?[0-9]"
-                           r"{3}[-\s]?\s?[0-9]{2}[-,\s]?\s?[0-9]{2}[^a-zA-Z0-9]", html_content)
+        phone = re.findall(r"[^a-zA-Z0-9]\+?[78]\s?[\s(]?[0-9]{3}[\-)]?\s?[0-9]{3}[-\s]?\s?[0-9]{2}[-,\s]?\s?[0-9]{2}", html_content)
         phone = list(set(map(ContactsParser.phone_formatter, phone)))
 
         # Validate phone with spys.one (Only 50 requests per hour)
