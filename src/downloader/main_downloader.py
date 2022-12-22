@@ -1,15 +1,17 @@
 import os
-import sys
 import logging
 import requests
 import pandas as pd
 import concurrent.futures
-from datetime import datetime
 
+from pathlib import Path
+from urllib3 import Retry
+from datetime import datetime
 from bs4 import BeautifulSoup as bs4
 from requests.adapters import HTTPAdapter
-from urllib3 import Retry
 
+
+PROJECT_DIR = str(Path(__file__).parent.parent.parent)
 logging.basicConfig(level=logging.DEBUG,
                     filename='../../logs.log',
                     filemode='w',
@@ -128,15 +130,15 @@ class MainDownloader:
 
     @staticmethod
     def write_to_file(content: bytes, domain: str):
-        os.makedirs(f'downloader2/site_dir_{domain}', exist_ok=True)
-        with open(f'downloader2/site_dir_{domain}/save.html', 'ab+') as file:
+        os.makedirs(f'{PROJECT_DIR}/downloader2/site_dir_{domain}', exist_ok=True)
+        with open(f'{PROJECT_DIR}/downloader2/site_dir_{domain}/save.html', 'ab+') as file:
             file.write(content)
             file.close()
 
 
 def main():
     def get_urls_from_database():
-        all_urls = pd.read_csv('../../all_urls.csv', delimiter='\t')
+        all_urls = pd.read_csv(PROJECT_DIR + '/all_urls.csv', delimiter='\t')
         res = all_urls.iloc[:, 0].tolist()
         res.append(all_urls.keys()[0])
         return res
