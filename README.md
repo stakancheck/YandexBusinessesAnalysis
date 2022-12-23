@@ -69,7 +69,8 @@
 </br>
 
 ## Презентация проекта 👇
-<img src="https://user-images.githubusercontent.com/49817414/209372987-34936e5a-4786-48a6-b420-6307e56bd2d9.png" href="/" title="Посмотреть презентацию" width=60%/>
+<img src="https://user-images.githubusercontent.com/49817414/209372987-34936e5a-4786-48a6-b420-6307e56bd2d9.png" href="https://disk.yandex.ru/d/_l6MFu1fQeJ-XA" title="Посмотреть презентацию" width=50%/> <img src="https://user-images.githubusercontent.com/49817414/209394494-8dd7b3c6-48bc-4840-b4cd-3e444f417316.png" title="Яндекс диск" width=25%>
+
 
 ## Итоговая база данных
 
