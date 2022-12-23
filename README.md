@@ -1,7 +1,9 @@
-<h1 align="center"> YandexBusinessesAnalysis </h1>
+<h3 align="center" > Большие данные | Интенсивы Академии Яндекса | Осень 22/23 </h3>
+<h1 align="center"> Графовая база данных про автобизнес в России </h1>
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/49817414/206552583-b158ff87-3580-46a8-b27a-2221a32193fe.png" align="center"/>
+<img src="https://user-images.githubusercontent.com/49817414/209363612-96dacd8e-b0a4-4ffc-bfc0-ac3da6a29145.png" width=30%/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<img src="https://user-images.githubusercontent.com/49817414/209363621-101f789a-d760-41bf-94f6-06b24fe1ded9.png" width=30%/>
 </p>
 
 
