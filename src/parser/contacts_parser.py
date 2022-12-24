@@ -60,7 +60,7 @@ class ContactsParser:
     @staticmethod
     def email_filter(email: str) -> bool:
         res = True
-        ignore_list = ['.svg', '.png', '.jpg', '.webp', '.bmp', '.gif', 'example']
+        ignore_list = ['.svg', '.png', '.jpg', '.webp', '.bmp', '.gif', '.css', 'example', 'team@tilda.cc']
         for ignore in ignore_list:
             if ignore in email:
                 res = False
