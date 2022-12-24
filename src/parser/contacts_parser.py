@@ -60,7 +60,7 @@ class ContactsParser:
     @staticmethod
     def email_filter(email: str) -> bool:
         res = True
-        ignore_list = ['.svg', '.png', '.jpg', '.webp', '.bmp', '.gif']
+        ignore_list = ['.svg', '.png', '.jpg', '.webp', '.bmp', '.gif', 'example']
         for ignore in ignore_list:
             if ignore in email:
                 res = False
@@ -94,6 +94,11 @@ class ContactsParser:
         return digits
 
     @staticmethod
+    def phone_filter(number: str) -> bool:
+        ignore_list = ['+79999999999', '+79997777777', '+79991112233', '+79998887777', '+79990000000']
+        return not (number in ignore_list)
+
+    @staticmethod
     def get_phones(html_content: str) -> list[str]:
         phone = re.findall(r"[^a-zA-Z0-9]\+?[78]\s?[\s(]?[0-9]{3}[\-)]?\s?[0-9]{3}[-\s]?\s?[0-9]{2}[-,\s]?\s?[0-9]{2}", html_content)
         phone2 = re.findall(r"[^a-zA-Z0-9]\+?[78]\s?[\s(]?[0-9]{4}[\-)]?\s?[0-9]{3}[-\s]?\s?[0-9]{3}", html_content)
@@ -111,7 +116,7 @@ class ContactsParser:
             town_phone = list(set(map(ContactsParser.phone_formatter, town_phone)))
             results: list[str] = phone + town_phone
 
-        results = list(filter(lambda x: x != '+79999999999', results))
+        results = list(filter(ContactsParser.phone_filter, results))
 
         return results if results else []
 
