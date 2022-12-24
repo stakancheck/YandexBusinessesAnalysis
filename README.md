@@ -42,7 +42,7 @@
 
 <p>
   <img src="https://user-images.githubusercontent.com/49817414/209367182-cb6dfa81-cf0d-4293-85f1-c9de3e333724.png" width=15% align="left"/>
-  <h3>Артём Суханов - Техдид | Программист - <a href="https://github.com/stakancheck/" title="Аккаунт на GitHub">GitHub</a></h3>
+  <h3>Артём Суханов - Техлид | Программист - <a href="https://github.com/stakancheck/" title="Аккаунт на GitHub">GitHub</a></h3>
   <b>Окончил IT академию Samsung</b>
   </br>
   <p>
